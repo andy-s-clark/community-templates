@@ -4,12 +4,12 @@ kind: snippet
 name: coreos_cloudconfig
 %>
 <%
-  units = 0
+  has_units = false
   unless @host.param_false?('enable_etcd')
-    units += 1
+    has_units = true
   end
   if @host.param_true?('expose_docker_socket')
-    units += 1
+    has_units = true
   end
   if @host.subnet.respond_to?(:dhcp_boot_mode?)
     dhcp = @host.subnet.dhcp_boot_mode? && !@static
@@ -17,10 +17,13 @@ name: coreos_cloudconfig
     dhcp = !@static
   end
   unless dhcp
-    units += 1
+    has_units = true
+  end
+  if @host.params['cloudconfig_units']
+    has_units = true
   end
 -%>
-<% if units > 0 -%>
+<% if has_units -%>
       coreos:
 <% if @host.params['reboot-strategy'] -%>
         update:
@@ -96,14 +99,26 @@ name: coreos_cloudconfig
           - name: systemd-networkd.service
             command: restart
 <% end -%>
+<% if @host.params['cloudconfig_units'] -%>
+<%= @host.params['cloudconfig_units'].gsub(/^/, '          ') %>
+<% end -%>
+<% end -%>
+<% if @host.params['flannel_etcd_endpoints'] -%>
+        flannel:
+          interface: <%= @host.ip %>
+          etcd_endpoints: <%= @host.params['flannel_etcd_endpoints'] %>
 <% end -%>
 <% if @host.params['ssh_authorized_keys'] -%>
       ssh_authorized_keys:
-  <% @host.params['ssh_authorized_keys'].split(',').map(&:strip).each do |ssh_key| -%>
-      - "<%= ssh_key %>"
-  <% end -%>
+<% @host.params['ssh_authorized_keys'].split(',').map(&:strip).each do |ssh_key| -%>
+        - "<%= ssh_key %>"
+<% end -%>
 <% else -%>
       users:
         - name: core
           passwd: <%= root_pass %>
+<% end -%>
+<% if @host.params['cloudconfig_write_files'] -%>
+      write_files:
+<%= @host.params['cloudconfig_write_files'].gsub(/^/, '        ') %>
 <% end -%>
