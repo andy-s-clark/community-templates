@@ -100,7 +100,7 @@ name: coreos_cloudconfig
             command: restart
 <% end -%>
 <% if @host.params['cloudconfig_units'] -%>
-<%= @host.params['cloudconfig_units'].gsub(/^/, '          ') %>
+<%= @host.params['cloudconfig_units'].gsub('#host.ip#', @host.ip).gsub(/^/, '          ') %>
 <% end -%>
 <% end -%>
 <% if @host.params['flannel_etcd_endpoints'] -%>
@@ -120,5 +120,5 @@ name: coreos_cloudconfig
 <% end -%>
 <% if @host.params['cloudconfig_write_files'] -%>
       write_files:
-<%= @host.params['cloudconfig_write_files'].gsub(/^/, '        ') %>
+<%= @host.params['cloudconfig_write_files'].gsub('#host.ip#', @host.ip).gsub(/^/, '        ') %>
 <% end -%>
