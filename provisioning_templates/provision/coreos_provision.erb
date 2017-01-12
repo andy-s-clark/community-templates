@@ -7,7 +7,7 @@ oses:
 %>
 <%
 os_major  = @host.operatingsystem.major.to_i
-%>
+-%>
 coreos:
   units:
     - name: coreos-bootstrap.service
@@ -37,8 +37,10 @@ users:
     passwd: <%= root_pass %>
 <% end -%>
 write_files:
-  - content: |
-      <%= snippet 'coreos_cloudconfig' %>
     path: /home/core/cloud-config.yml
     permissions: '0600'
     owner: core:core
+    content: |
+<%= indent 6 do
+  snippet 'coreos_cloudconfig'
+end %>
