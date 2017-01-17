@@ -191,49 +191,49 @@ write_files:
       CONTROLLER_ENDPOINT=<%= @host.params['k8s_controller_endpoint'] %>
 <% end -%>
       ADVERTISE_IP=<%= @host.ip %>
-<% if @host.params['k8s_ca_pem'] -%>
+<% if @host.params['k8s_ca_cert'] -%>
   - path: "/etc/kubernetes/ssl/ca.pem"
     owner: "root"
     permissions: "0600"
     content: |
 <%= indent 6 do
-  @host.params['k8s_ca_pem']
+  @host.params['k8s_ca_cert']
 end %>
 <% end -%>
-<% if @host.params['k8s_apiserver_pem'] -%>
+<% if @host.params['k8s_apiserver_cert'] -%>
   - path: "/etc/kubernetes/ssl/apiserver.pem"
     owner: "root"
     permissions: "0600"
     content: |
 <%= indent 6 do
-  @host.params['k8s_apiserver_pem']
+  @host.params['k8s_apiserver_cert']
 end %>
 <% end -%>
-<% if @host.params['k8s_apiserver_key_pem'] -%>
+<% if @host.params['k8s_apiserver_key'] -%>
   - path: "/etc/kubernetes/ssl/apiserver-key.pem"
     owner: "root"
     permissions: "0600"
     content: |
 <%= indent 6 do
-  @host.params['k8s_apiserver_key_pem']
+  @host.params['k8s_apiserver_key']
 end %>
 <% end -%>
-<% if @host.params['k8s_worker_pem'] -%>
+<% if @host.params['k8s_worker_cert'] -%>
   - path: "/etc/kubernetes/ssl/worker.pem"
     owner: "root"
     permissions: "0600"
     content: |
 <%= indent 6 do
-  @host.params['k8s_worker_pem']
+  @host.params['k8s_worker_cert']
 end %>
 <% end -%>
-<% if @host.params['k8s_worker_key_pem'] -%>
+<% if @host.params['k8s_worker_key'] -%>
   - path: "/etc/kubernetes/ssl/worker-key.pem"
     owner: "root"
     permissions: "0600"
     content: |
 <%= indent 6 do
-  @host.params['k8s_worker_key_pem']
+  @host.params['k8s_worker_key']
 end %>
 <% end -%>
   - path: "/home/core/k8s-install.sh"
