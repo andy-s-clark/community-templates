@@ -5,9 +5,9 @@ name: coreos_cloudconfig
 %>
 <%
   if @host.param_false?('enable_etcd')
-    has_units = true
-  else
     has_units = false
+  else
+    has_units = true
   end
 
   if @host.params['cloudconfig_write_files']
