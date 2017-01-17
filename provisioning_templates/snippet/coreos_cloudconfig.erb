@@ -11,18 +11,22 @@ name: coreos_cloudconfig
   end
 
   if @host.params['cloudconfig_write_files']
-    has_write_files = false
-  else
     has_write_files = true
+  else
+    has_write_files = false
   end
 
   if @host.params['reboot-strategy']
     has_units = true
   end
 
-  if @host.params['k8s_master']
+  if ['master', 'worker'].include?(@host.params['k8s_install'])
     has_units = true
     has_write_files = true
+    k8s_install = true
+    k8s_install_snippet = 'k8s_' + @host.params['k8s_install'] + '_install'
+  else
+    k8s_install = false
   end
 
   if @host.param_true?('expose_docker_socket')
@@ -117,13 +121,13 @@ coreos:
     - name: systemd-networkd.service
       command: restart
 <% end -%>
-<% if @host.params['k8s_master'] -%>
+<% if k8s_install_snippet -%>
     - name: kubernetes-bootstrap.service
       runtime: no
       command: start
       content: |
         [Unit]
-        Description=Install kubernetes master
+        Description=Install kubernetes
         [Service]
         Type=oneshot
         ExecStart=/home/core/k8s-install.sh
@@ -153,7 +157,7 @@ ssh_authorized_keys:
 <% end -%>
 <% if has_write_files -%>
 write_files:
-<% if @host.params['k8s_master'] -%>
+<% if k8s_install -%>
   - path: "/run/coreos-kubernetes/options.env"
     content: |
 <% if @host.params['k8s_version'] -%>
@@ -183,15 +187,61 @@ write_files:
 <% if @host.params['container_runtime'] -%>
       CONTAINER_RUNTIME=<%= @host.params['container_runtime'] %>
 <% end -%>
-      ADVERTISE_IP=<%= @host.ip %>
+<% if @host.params['k8s_controller_endpoint'] -%>
+      CONTROLLER_ENDPOINT=<%= @host.params['k8s_controller_endpoint'] %>
 <% end -%>
-<% if @host.params['k8s_master'] -%>
+      ADVERTISE_IP=<%= @host.ip %>
+<% if @host.params['k8s_ca_pem'] -%>
+  - path: "/etc/kubernetes/ssl/ca.pem"
+    owner: "root"
+    permissions: "0600"
+    content: |
+<%= indent 6 do
+  @host.params['k8s_ca_pem']
+end %>
+<% end -%>
+<% if @host.params['k8s_apiserver_pem'] -%>
+  - path: "/etc/kubernetes/ssl/apiserver.pem"
+    owner: "root"
+    permissions: "0600"
+    content: |
+<%= indent 6 do
+  @host.params['k8s_apiserver_pem']
+end %>
+<% end -%>
+<% if @host.params['k8s_apiserver_key_pem'] -%>
+  - path: "/etc/kubernetes/ssl/apiserver-key.pem"
+    owner: "root"
+    permissions: "0600"
+    content: |
+<%= indent 6 do
+  @host.params['k8s_apiserver_key_pem']
+end %>
+<% end -%>
+<% if @host.params['k8s_worker_pem'] -%>
+  - path: "/etc/kubernetes/ssl/worker.pem"
+    owner: "root"
+    permissions: "0600"
+    content: |
+<%= indent 6 do
+  @host.params['k8s_worker_pem']
+end %>
+<% end -%>
+<% if @host.params['k8s_worker_key_pem'] -%>
+  - path: "/etc/kubernetes/ssl/worker-key.pem"
+    owner: "root"
+    permissions: "0600"
+    content: |
+<%= indent 6 do
+  @host.params['k8s_worker_key_pem']
+end %>
+<% end -%>
   - path: "/home/core/k8s-install.sh"
     owner: "core"
     permissions: "0755"
     content: |
 <%= indent 6 do
-  snippet 'k8s_master_install'
+  snippet k8s_install_snippet
 end %>
 <% end -%>
 <% end -%>

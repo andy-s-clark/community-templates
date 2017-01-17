@@ -4,7 +4,7 @@ kind: provision
 name: CoreOS provision
 oses:
 - CoreOS
-%>
+-%>
 <%
 os_major  = @host.operatingsystem.major.to_i
 -%>
@@ -37,7 +37,7 @@ users:
     passwd: <%= root_pass %>
 <% end -%>
 write_files:
-    path: /home/core/cloud-config.yml
+  - path: /home/core/cloud-config.yml
     permissions: '0600'
     owner: core:core
     content: |
