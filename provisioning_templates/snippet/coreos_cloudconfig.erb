@@ -4,10 +4,10 @@ kind: snippet
 name: coreos_cloudconfig
 %>
 <%
-  if @host.param_false?('enable_etcd')
-    has_units = false
-  else
+  if @host.param_true?('enable_etcd')
     has_units = true
+  else
+    has_units = false
   end
 
   if @host.params['cloudconfig_write_files']
@@ -16,17 +16,20 @@ name: coreos_cloudconfig
     has_write_files = false
   end
 
-  if @host.params['reboot-strategy']
-    has_units = true
-  end
-
   if ['master', 'worker'].include?(@host.params['k8s_install'])
-    has_units = true
+    # has_units = true
     has_write_files = true
     k8s_install = true
     k8s_install_snippet = 'k8s_' + @host.params['k8s_install'] + '_install'
   else
     k8s_install = false
+  end
+
+  if @host.param_true?('enable_flanneld')
+    has_units = true
+  end
+  if @host.param_true?('enable_fleet')
+    has_units = true
   end
 
   if @host.param_true?('expose_docker_socket')
@@ -41,16 +44,26 @@ name: coreos_cloudconfig
   unless dhcp
     has_units = true
   end
+  if @host.params['reboot-strategy'] and @host.params['etcd_endpoints']
+    use_locksmithd = true
+    has_units = true
+  else
+    use_locksmithd = false
+  end
   if @host.params['cloudconfig_units']
     has_units = true
   end
 -%>
 coreos:
 <% if @host.params['reboot-strategy'] -%>
+<% if use_locksmithd -%>
+  locksmith:
+    endpoint: <%= @host.params['etcd_endpoints'] %>
+<% end -%>
   update:
     reboot-strategy: <%= @host.params['reboot-strategy'] %>
 <% end -%>
-<% unless @host.param_false?('enable_etcd') -%>
+<% if @host.param_true?('enable_etcd') -%>
   etcd2:
 <% if @host.params['etcd_discovery_url'] -%>
     discovery: <%= @host.params['etcd_discovery_url'] %>
@@ -60,12 +73,36 @@ coreos:
     listen-client-urls: http://0.0.0.0:2379
     listen-peer-urls: http://0.0.0.0:2380
 <% end -%>
+<% if @host.param_true?('enable_flanneld') -%>
+  flannel:
+    interface: <%= @host.ip %>
+<% if @host.params['etcd_endpoints'] -%>
+    etcd_endpoints: <%= @host.params['etcd_endpoints'] %>
+<% end -%>
+<% end -%>
+<% if @host.param_true?('enable_fleet') -%>
+  fleet:
+    public-ip: <%= @host.ip %>
+<% if @host.params['etcd_endpoints'] -%>
+    etcd_servers: <%= @host.params['etcd_endpoints'] %>
+<% end -%>
+<% end -%>
 <% if has_units -%>
   units:
-<% unless @host.param_false?('enable_etcd') -%>
+<% if @host.param_true?('enable_etcd') -%>
     - name: etcd2.service
       command: start
+<% end -%>
+<% if @host.param_true?('enable_flanneld') -%>
+    - name: flanneld.service
+      command: start
+<% end -%>
+<% if @host.param_true?('enable_fleet') -%>
     - name: fleet.service
+      command: start
+<% end -%>
+<% if use_locksmithd -%>
+    - name: locksmithd.service
       command: start
 <% end -%>
 <% if @host.param_true?('expose_docker_socket') -%>
@@ -121,7 +158,7 @@ coreos:
     - name: systemd-networkd.service
       command: restart
 <% end -%>
-<% if k8s_install_snippet -%>
+<% if k8s_install_snippet and false -%>
     - name: kubernetes-bootstrap.service
       runtime: no
       command: start
@@ -140,11 +177,7 @@ coreos:
 end %>
 <% end -%>
 <% end -%>
-<% if @host.params['flannel_etcd_endpoints'] -%>
-  flannel:
-    interface: <%= @host.ip %>
-    etcd_endpoints: <%= @host.params['flannel_etcd_endpoints'] %>
-<% end -%>
+
 <% if @host.params['ssh_authorized_keys'] -%>
 ssh_authorized_keys:
 <% @host.params['ssh_authorized_keys'].split(',').map(&:strip).each do |ssh_key| -%>
