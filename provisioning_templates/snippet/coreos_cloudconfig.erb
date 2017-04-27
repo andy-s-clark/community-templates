@@ -46,9 +46,11 @@ name: coreos_cloudconfig
   end
   if @host.params['reboot-strategy'] and @host.params['etcd_endpoints']
     use_locksmithd = true
+    use_update_engine = true
     has_units = true
   else
     use_locksmithd = false
+    use_update_engine = true
   end
   if @host.params['cloudconfig_units']
     has_units = true
@@ -103,6 +105,10 @@ coreos:
 <% end -%>
 <% if use_locksmithd -%>
     - name: locksmithd.service
+      command: start
+<% end -%>
+<% if use_update_engine -%>
+    - name: update-engine.service
       command: start
 <% end -%>
 <% if @host.param_true?('expose_docker_socket') -%>
